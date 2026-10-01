@@ -97,8 +97,23 @@ class LocationSuggestionApiTests(TestCase):
 
     def test_prediction_query_is_case_insensitive(self):
         expected = self.client.get(self.url, {'q': 'fort s'}).json()
-        self.assertEqual(self.client.get(self.url, {'q': 'FORT S'}).json(), expected)
-        self.assertEqual(self.client.get(self.url, {'q': 'FoRt S'}).json(), expected)
+        for query in ('FORT S', 'FoRt S', '  fOrT   s  '):
+            with self.subTest(query=query):
+                response = self.client.get(self.url, {'q': query})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), expected)
+
+    def test_missing_and_unknown_queries_return_empty_lists(self):
+        for params in ({}, {'q': 'Unknown'}):
+            with self.subTest(params=params):
+                response = self.client.get(self.url, params)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json(), {'suggestions': []})
+
+    def test_query_at_maximum_length_is_accepted(self):
+        response = self.client.get(self.url, {'q': 'x' * 120})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {'suggestions': []})
 
     def test_short_query_returns_empty_list(self):
         response = self.client.get(self.url, {'q': 'F'})
