@@ -9,6 +9,55 @@
   },
   "item": [
     {
+      "name": "Predict cities",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Matches the city-prediction schema\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.suggestions).to.be.an(\"array\").that.is.not.empty;",
+              "    body.suggestions.forEach(function (suggestion) {",
+              "        pm.expect(suggestion).to.include.all.keys(\"label\", \"city\", \"state\", \"state_name\", \"coordinates\");",
+              "        pm.expect(suggestion.coordinates).to.be.an(\"array\").with.lengthOf(2);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/locations/?q=Fort%20S%2C%20AR",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "locations",
+            ""
+          ],
+          "query": [
+            {
+              "key": "q",
+              "value": "Fort S, AR"
+            }
+          ]
+        },
+        "description": "Returns up to eight local city predictions for the route form."
+      },
+      "response": []
+    },
+    {
       "name": "Create fuel plan",
       "event": [
         {

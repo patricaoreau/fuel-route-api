@@ -1,0 +1,164 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Fuel Route API workbench">
+  <title>Fuel Route API</title>
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="preconnect" href="https://tile.openstreetmap.org">
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="{% static 'routing/workbench.css' %}">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-bar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"><i data-lucide="route"></i></span>
+        <div>
+          <h1>Fuel Route API</h1>
+          <p>Route cost workbench</p>
+        </div>
+      </div>
+      <div class="service-state" aria-label="Service ready">
+        <span class="status-dot"></span>
+        Local API
+      </div>
+    </header>
+
+    <form class="route-form" id="route-form">
+      <div class="location-field">
+        <label for="start-location">Start</label>
+        <div class="suggestion-anchor">
+          <span class="input-wrap">
+            <i data-lucide="map-pin" aria-hidden="true"></i>
+            <input id="start-location" name="start" value="Fort Smith, AR" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="start-suggestions" required>
+          </span>
+          <ul class="suggestion-list" id="start-suggestions" role="listbox" hidden></ul>
+        </div>
+      </div>
+
+      <button class="icon-button swap-button" id="swap-locations" type="button" title="Swap locations" aria-label="Swap locations">
+        <i data-lucide="arrow-right-left" aria-hidden="true"></i>
+      </button>
+
+      <div class="location-field">
+        <label for="finish-location">Finish</label>
+        <div class="suggestion-anchor">
+          <span class="input-wrap">
+            <i data-lucide="flag" aria-hidden="true"></i>
+            <input id="finish-location" name="finish" value="Mount Jackson, VA" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="finish-suggestions" required>
+          </span>
+          <ul class="suggestion-list" id="finish-suggestions" role="listbox" hidden></ul>
+        </div>
+      </div>
+
+      <button class="primary-button" id="submit-route" type="submit">
+        <i data-lucide="play" aria-hidden="true"></i>
+        <span>Run route</span>
+      </button>
+    </form>
+
+    <div class="error-banner" id="error-banner" role="alert" hidden>
+      <i data-lucide="circle-alert" aria-hidden="true"></i>
+      <div>
+        <strong id="error-title">Request failed</strong>
+        <p id="error-message"></p>
+      </div>
+      <button class="icon-button" id="dismiss-error" type="button" title="Dismiss" aria-label="Dismiss error">
+        <i data-lucide="x" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <main class="workspace">
+      <section class="map-pane" aria-label="Route map">
+        <div id="map"></div>
+        <div class="map-state" id="map-state">
+          <i data-lucide="map" aria-hidden="true"></i>
+          <span>No route loaded</span>
+        </div>
+        <div class="route-badge" id="route-badge" hidden>
+          <span id="route-label"></span>
+        </div>
+        <div class="loading-state" id="loading-state" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Calculating route</span>
+        </div>
+      </section>
+
+      <aside class="results-pane" aria-live="polite" aria-busy="false">
+        <div class="empty-results" id="empty-results">
+          <span class="empty-icon"><i data-lucide="gauge" aria-hidden="true"></i></span>
+          <h2>No trip loaded</h2>
+          <p>POST /api/v1/routes/fuel-plan/</p>
+        </div>
+
+        <div class="results" id="results" hidden>
+          <div class="results-heading">
+            <div>
+              <span class="eyebrow">Trip summary</span>
+              <h2 id="result-title"></h2>
+            </div>
+            <span class="currency-badge">USD</span>
+          </div>
+
+          <div class="metrics">
+            <div class="metric metric-cost">
+              <span>Total fuel cost</span>
+              <strong id="total-cost">$0.00</strong>
+            </div>
+            <div class="metric">
+              <span>Distance</span>
+              <strong id="distance">0 mi</strong>
+            </div>
+            <div class="metric">
+              <span>Duration</span>
+              <strong id="duration">0 hr</strong>
+            </div>
+            <div class="metric">
+              <span>Fuel</span>
+              <strong id="gallons">0 gal</strong>
+            </div>
+            <div class="metric">
+              <span>Stops</span>
+              <strong id="stop-count">0</strong>
+            </div>
+          </div>
+
+          <section class="stops-section">
+            <div class="section-heading">
+              <h3>Fuel stops</h3>
+              <span id="vehicle-spec"></span>
+            </div>
+            <ol class="stop-list" id="stop-list"></ol>
+          </section>
+
+          <details class="response-details">
+            <summary>
+              <span>API response</span>
+              <i data-lucide="chevron-down" aria-hidden="true"></i>
+            </summary>
+            <div class="response-toolbar">
+              <span>JSON</span>
+              <button class="icon-button" id="copy-response" type="button" title="Copy response" aria-label="Copy response">
+                <i data-lucide="copy" aria-hidden="true"></i>
+              </button>
+            </div>
+            <pre id="raw-response"></pre>
+          </details>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script>
+    window.FUEL_ROUTE_CONFIG = {
+      endpoint: "/api/v1/routes/fuel-plan/",
+      suggestionsEndpoint: "/api/v1/locations/"
+    };
+  </script>
+  <script type="module" src="{% static 'routing/workbench.js' %}"></script>
+</body>
+</html>

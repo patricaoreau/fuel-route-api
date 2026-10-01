@@ -2,14 +2,38 @@ import json
 import logging
 
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 
 from routing.exceptions import FuelRouteError, RequestValidationError
+from routing.services.location import suggest_locations
 from routing.services.planner import build_fuel_route_plan
 
 
 logger = logging.getLogger(__name__)
 MAX_REQUEST_BYTES = 10_000
+
+
+def demo(request):
+    return render(request, 'routing/index.html')
+
+
+def location_suggestions(request):
+    if request.method != 'GET':
+        response = JsonResponse(
+            {'error': {'code': 'method_not_allowed', 'message': 'Use GET for this endpoint.'}},
+            status=405,
+        )
+        response['Allow'] = 'GET'
+        return response
+
+    query = request.GET.get('q', '')
+    if len(query) > 120:
+        return _error_response(RequestValidationError(
+            'Location query is too long.',
+            fields={'q': 'Use no more than 120 characters.'},
+        ))
+    return JsonResponse({'suggestions': suggest_locations(query)})
 
 
 def _error_response(error):

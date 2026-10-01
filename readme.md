@@ -28,6 +28,7 @@ $env:DJANGO_SECRET_KEY = "local-development-key"
 $env:OPENROUTESERVICE_API_KEY = "your-key"
 python manage.py migrate
 python manage.py import_route_data
+python manage.py collectstatic --noinput
 python manage.py runserver
 ```
 
@@ -41,12 +42,35 @@ export DJANGO_SECRET_KEY="local-development-key"
 export OPENROUTESERVICE_API_KEY="your-key"
 python manage.py migrate
 python manage.py import_route_data
+python manage.py collectstatic --noinput
 python manage.py runserver
 ```
 
 `.env.example` lists all supported settings. Django loads `.env` and an optional `.env.local` from the project root. Existing shell or deployment variables take priority, followed by `.env.local`, then `.env`. Restart the development server after changing either file.
 
 The import is transactional and idempotent. It prints counts for created/updated records, duplicate reconciliation, non-US rows, unmatched locations, and invalid data. On the supplied files it imports 29,639 normalized US cities and 6,841 distinct priced station records.
+
+## City predictions
+
+The page inputs use the local city dataset through `GET /api/v1/locations/?q=`. Predictions begin after two city characters, support optional state filtering, return at most eight matches, and do not consume routing-provider quota.
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/locations/?q=Fort%20S%2C%20AR"
+```
+
+```json
+{
+  "suggestions": [
+    {
+      "label": "Fort Smith, AR",
+      "city": "Fort Smith",
+      "state": "AR",
+      "state_name": "Arkansas",
+      "coordinates": [-94.411035, 35.365272]
+    }
+  ]
+}
+```
 
 ## Request example
 

@@ -1,5 +1,7 @@
 import re
 
+from django.db.models import Q
+
 from routing.exceptions import RequestValidationError
 from routing.models import City
 
@@ -72,3 +74,40 @@ def resolve_location(value, field_name):
         'coordinates': [city.longitude, city.latitude],
         'cache_key': f'{city.state_code}:{city.normalized_name}',
     }
+
+
+def suggest_locations(value, limit=8):
+    if not isinstance(value, str):
+        return []
+    query = ' '.join(value.strip().split())
+    if len(query) < 2:
+        return []
+
+    city_part, separator, state_part = query.partition(',')
+    normalized_city = normalize_name(city_part)
+    if len(normalized_city) < 2:
+        return []
+
+    cities = City.objects.filter(normalized_name__startswith=normalized_city)
+    if separator and state_part.strip():
+        state_query = state_part.strip()
+        state_code = normalize_state(state_query)
+        if state_code:
+            cities = cities.filter(state_code=state_code)
+        else:
+            cities = cities.filter(
+                Q(state_code__istartswith=state_query)
+                | Q(state_name__istartswith=state_query)
+            )
+
+    limit = max(1, min(int(limit), 20))
+    return [
+        {
+            'label': f'{city.name}, {city.state_code}',
+            'city': city.name,
+            'state': city.state_code,
+            'state_name': city.state_name,
+            'coordinates': [city.longitude, city.latitude],
+        }
+        for city in cities.order_by('normalized_name', 'state_code')[:limit]
+    ]
