@@ -10,22 +10,35 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Explicit paths make environment loading independent of the working directory.
+# Existing process variables win; .env.local takes precedence over .env.
+load_dotenv(BASE_DIR / '.env.local', override=False)
+load_dotenv(BASE_DIR / '.env', override=False)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-zt5u+d55dn5m*gb&2@a(kt+^z6@m#1l4_&!9b&!tdqh38w+)2m'
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-development-only-change-me',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG', 'true').lower() in {'1', 'true', 'yes'}
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,testserver').split(',')
+    if host.strip()
+]
 
 
 # Application definition
@@ -37,6 +50,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'routing',
 ]
 
 MIDDLEWARE = [
@@ -117,11 +131,35 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
+# Enable these only after HTTPS is configured at the app or proxy layer.
+SECURE_SSL_REDIRECT = os.environ.get('DJANGO_SECURE_SSL_REDIRECT', 'false').lower() in {'1', 'true', 'yes'}
+SESSION_COOKIE_SECURE = os.environ.get('DJANGO_SESSION_COOKIE_SECURE', 'false').lower() in {'1', 'true', 'yes'}
+CSRF_COOKIE_SECURE = os.environ.get('DJANGO_CSRF_COOKIE_SECURE', 'false').lower() in {'1', 'true', 'yes'}
+SECURE_HSTS_SECONDS = int(os.environ.get('DJANGO_SECURE_HSTS_SECONDS', '0'))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get(
+    'DJANGO_SECURE_HSTS_INCLUDE_SUBDOMAINS', 'false'
+).lower() in {'1', 'true', 'yes'}
+SECURE_HSTS_PRELOAD = os.environ.get('DJANGO_SECURE_HSTS_PRELOAD', 'false').lower() in {'1', 'true', 'yes'}
 
-MAILERS = {
+
+# Fuel route API
+OPENROUTESERVICE_API_KEY = os.environ.get('OPENROUTESERVICE_API_KEY', '')
+OPENROUTESERVICE_BASE_URL = os.environ.get(
+    'OPENROUTESERVICE_BASE_URL',
+    'https://api.openrouteservice.org',
+).rstrip('/')
+OPENROUTESERVICE_TIMEOUT_SECONDS = float(
+    os.environ.get('OPENROUTESERVICE_TIMEOUT_SECONDS', '10')
+)
+ROUTE_CACHE_SECONDS = int(os.environ.get('ROUTE_CACHE_SECONDS', '86400'))
+ROUTE_CORRIDOR_MILES = float(os.environ.get('ROUTE_CORRIDOR_MILES', '15'))
+ORIGIN_STATION_WINDOW_MILES = float(
+    os.environ.get('ORIGIN_STATION_WINDOW_MILES', '25')
+)
+
+CACHES = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'fuel-route-api',
+    }
 }
