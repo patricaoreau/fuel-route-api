@@ -133,13 +133,14 @@ import * as maplibregl from "https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-
         close();
         return;
       }
+      const comparisonQuery = query.toLocaleLowerCase("en-US");
       if (requestController) {
         requestController.abort();
       }
       requestController = new AbortController();
       try {
         const response = await fetch(
-          `${suggestionsEndpoint}?q=${encodeURIComponent(query)}`,
+          `${suggestionsEndpoint}?q=${encodeURIComponent(comparisonQuery)}`,
           { signal: requestController.signal }
         );
         if (!response.ok) {

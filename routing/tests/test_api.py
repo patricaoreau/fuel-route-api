@@ -95,6 +95,11 @@ class LocationSuggestionApiTests(TestCase):
             'coordinates': [-94.411, 35.365],
         })
 
+    def test_prediction_query_is_case_insensitive(self):
+        expected = self.client.get(self.url, {'q': 'fort s'}).json()
+        self.assertEqual(self.client.get(self.url, {'q': 'FORT S'}).json(), expected)
+        self.assertEqual(self.client.get(self.url, {'q': 'FoRt S'}).json(), expected)
+
     def test_short_query_returns_empty_list(self):
         response = self.client.get(self.url, {'q': 'F'})
         self.assertEqual(response.json(), {'suggestions': []})

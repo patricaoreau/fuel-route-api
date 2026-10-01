@@ -79,7 +79,7 @@ def resolve_location(value, field_name):
 def suggest_locations(value, limit=8):
     if not isinstance(value, str):
         return []
-    query = ' '.join(value.strip().split())
+    query = normalize_name(value)
     if len(query) < 2:
         return []
 

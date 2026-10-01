@@ -52,6 +52,17 @@ class LocationTests(TestCase):
             ['New Orleans, LA', 'New York, NY', 'Newark, NJ'],
         )
 
+    def test_suggestions_compare_city_names_case_insensitively(self):
+        expected = [item['label'] for item in suggest_locations('new')]
+        self.assertEqual(
+            [item['label'] for item in suggest_locations('NEW')],
+            expected,
+        )
+        self.assertEqual(
+            [item['label'] for item in suggest_locations('NeW')],
+            expected,
+        )
+
     def test_suggestions_filter_by_state_code_or_name(self):
         self.assertEqual(suggest_locations('New, NY')[0]['label'], 'New York, NY')
         self.assertEqual(suggest_locations('New, Lou')[0]['label'], 'New Orleans, LA')
