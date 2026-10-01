@@ -33,7 +33,7 @@
         <div class="suggestion-anchor">
           <span class="input-wrap">
             <i data-lucide="map-pin" aria-hidden="true"></i>
-            <input id="start-location" name="start" value="Fort Smith, AR" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="start-suggestions" required>
+            <input id="start-location" name="start" placeholder="City, ST" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="start-suggestions" required>
           </span>
           <ul class="suggestion-list" id="start-suggestions" role="listbox" hidden></ul>
         </div>
@@ -48,7 +48,7 @@
         <div class="suggestion-anchor">
           <span class="input-wrap">
             <i data-lucide="flag" aria-hidden="true"></i>
-            <input id="finish-location" name="finish" value="Mount Jackson, VA" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="finish-suggestions" required>
+            <input id="finish-location" name="finish" placeholder="City, ST" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="finish-suggestions" required>
           </span>
           <ul class="suggestion-list" id="finish-suggestions" role="listbox" hidden></ul>
         </div>
@@ -156,7 +156,11 @@
   <script>
     window.FUEL_ROUTE_CONFIG = {
       endpoint: "/api/v1/routes/fuel-plan/",
-      suggestionsEndpoint: "/api/v1/locations/"
+      suggestionsEndpoint: "/api/v1/locations/",
+      ipLocationEndpoints: [
+        "https://ipwho.is/?fields=success,country_code,region_code,city",
+        "https://ipinfo.io/json"
+      ]
     };
   </script>
   <script type="module" src="{% static 'routing/workbench.js' %}"></script>

@@ -72,6 +72,8 @@ curl "http://127.0.0.1:8000/api/v1/locations/?q=Fort%20S%2C%20AR"
 }
 ```
 
+On page load, the browser makes a best-effort request directly to [ipwho.is](https://ipwhois.io/documentation), with [IPinfo](https://ipinfo.io/developers) as a fallback, so the lookup uses the frontend user's public IP instead of the Django server's IP. The returned US city and state must exactly match a prediction from the local city dataset before Start is populated. Lookup failures never block manual entry, and text already entered by the user is never replaced. These third-party providers receive the user's public IP as part of the network request. IP location is approximate and may identify an ISP location instead of the user's precise city.
+
 ## Request example
 
 ```bash

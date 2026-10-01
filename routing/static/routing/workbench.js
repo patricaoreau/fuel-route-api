@@ -5,6 +5,7 @@ import * as maplibregl from "https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-
 
   const endpoint = window.FUEL_ROUTE_CONFIG.endpoint;
   const suggestionsEndpoint = window.FUEL_ROUTE_CONFIG.suggestionsEndpoint;
+  const ipLocationEndpoints = window.FUEL_ROUTE_CONFIG.ipLocationEndpoints || [];
   const form = document.querySelector("#route-form");
   const startInput = document.querySelector("#start-location");
   const finishInput = document.querySelector("#finish-location");
@@ -364,6 +365,65 @@ import * as maplibregl from "https://unpkg.com/maplibre-gl@6.11.2/dist/maplibre-
     finishInput,
     document.querySelector("#finish-suggestions")
   );
+
+  async function setDefaultStartLocation() {
+    if (!ipLocationEndpoints.length || startInput.value.trim()) {
+      return;
+    }
+    try {
+      let location = null;
+      for (const locationEndpoint of ipLocationEndpoints) {
+        try {
+          const locationResponse = await fetch(locationEndpoint);
+          if (locationResponse.ok) {
+            const candidate = await locationResponse.json();
+            if (candidate.success !== false) {
+              location = candidate;
+              break;
+            }
+          }
+        } catch (error) {
+          // Try the next browser-side provider.
+        }
+      }
+      if (!location || startInput.value.trim()) {
+        return;
+      }
+      const city = typeof location.city === "string" ? location.city.trim() : "";
+      const state = typeof location.region_code === "string"
+        ? location.region_code.trim().toUpperCase()
+        : "";
+      const stateName = typeof location.region === "string" ? location.region.trim() : "";
+      const country = location.country_code || location.country;
+      const stateQuery = state || stateName;
+      if (country !== "US" || !city || !stateQuery) {
+        return;
+      }
+
+      const query = encodeURIComponent(`${city}, ${stateQuery}`.toLocaleLowerCase("en-US"));
+      const suggestionResponse = await fetch(`${suggestionsEndpoint}?q=${query}`);
+      if (!suggestionResponse.ok || startInput.value.trim()) {
+        return;
+      }
+      const suggestions = (await suggestionResponse.json()).suggestions || [];
+      const match = suggestions.find((suggestion) => (
+        (!state || suggestion.state === state)
+        && (!stateName || suggestion.state_name.localeCompare(
+          stateName,
+          "en-US",
+          { sensitivity: "base" }
+        ) === 0)
+        && suggestion.city.localeCompare(city, "en-US", { sensitivity: "base" }) === 0
+      ));
+      if (match && !startInput.value.trim()) {
+        startInput.value = match.label;
+      }
+    } catch (error) {
+      // IP location is an optional convenience; manual input remains available.
+    }
+  }
+
+  setDefaultStartLocation();
 
   form.addEventListener("submit", (event) => {
     closeStartSuggestions();

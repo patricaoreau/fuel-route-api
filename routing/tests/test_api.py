@@ -63,6 +63,8 @@ class DemoPageTests(TestCase):
         self.assertContains(response, 'Fuel Route API')
         self.assertContains(response, '/api/v1/routes/fuel-plan/')
         self.assertContains(response, '/api/v1/locations/')
+        self.assertContains(response, 'https://ipwho.is/')
+        self.assertContains(response, 'https://ipinfo.io/json')
 
 
 @override_settings(SECURE_SSL_REDIRECT=False)

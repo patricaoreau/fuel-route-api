@@ -167,7 +167,6 @@ ROUTE_CORRIDOR_MILES = float(os.environ.get('ROUTE_CORRIDOR_MILES', '15'))
 ORIGIN_STATION_WINDOW_MILES = float(
     os.environ.get('ORIGIN_STATION_WINDOW_MILES', '25')
 )
-
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
