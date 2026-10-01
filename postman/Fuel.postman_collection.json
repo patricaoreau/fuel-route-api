@@ -1,0 +1,241 @@
+{
+  "info": {
+    "_postman_id": "05d6cb84-8d8f-451c-a758-84842c0d4048",
+    "name": "Fuel",
+    "description": "Requests and schema checks for the Fuel Route API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "28283537",
+    "_collection_link": "https://go.postman.co/collection/28283537-05d6cb84-8d8f-451c-a758-84842c0d4048?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Create fuel plan",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Matches the fuel-plan response schema\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.include.all.keys(\"start\", \"finish\", \"route\", \"vehicle\", \"fuel_stops\", \"total_gallons\", \"total_fuel_cost\", \"currency\", \"attribution\", \"assumptions\");",
+              "    pm.expect(body.start).to.include.all.keys(\"label\", \"coordinates\");",
+              "    pm.expect(body.finish).to.include.all.keys(\"label\", \"coordinates\");",
+              "    pm.expect(body.start.coordinates).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(body.finish.coordinates).to.be.an(\"array\").with.lengthOf(2);",
+              "    pm.expect(body.route).to.include.all.keys(\"distance_miles\", \"duration_hours\", \"geometry\");",
+              "    pm.expect(body.route.geometry.type).to.eql(\"LineString\");",
+              "    pm.expect(body.route.geometry.coordinates).to.be.an(\"array\").that.is.not.empty;",
+              "    pm.expect(body.vehicle).to.deep.equal({ mpg: 10, max_range_miles: 500, tank_capacity_gallons: 50 });",
+              "    pm.expect(body.fuel_stops).to.be.an(\"array\").that.is.not.empty;",
+              "    pm.expect(body.total_gallons).to.be.a(\"number\").and.to.be.above(0);",
+              "    pm.expect(body.total_fuel_cost).to.be.a(\"number\").and.to.be.above(0);",
+              "    pm.expect(body.currency).to.eql(\"USD\");",
+              "    pm.expect(body.assumptions).to.be.an(\"array\");",
+              "});",
+              "",
+              "pm.test(\"Fuel stops match the current item schema\", function () {",
+              "    const stops = pm.response.json().fuel_stops;",
+              "    stops.forEach(function (stop) {",
+              "        pm.expect(stop).to.include.all.keys(\"station_id\", \"name\", \"address\", \"city\", \"state\", \"coordinates\", \"location_accuracy\", \"price_per_gallon\", \"route_mile\", \"estimated_detour_miles\", \"gallons\", \"cost\");",
+              "        pm.expect(stop.coordinates).to.be.an(\"array\").with.lengthOf(2);",
+              "        pm.expect(stop.price_per_gallon).to.be.a(\"number\").and.to.be.above(0);",
+              "        pm.expect(stop.gallons).to.be.a(\"number\").and.to.be.above(0);",
+              "        pm.expect(stop.cost).to.be.a(\"number\").and.to.be.above(0);",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Fort Smith, AR\",\n  \"finish\": \"Mount Jackson, VA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/routes/fuel-plan/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "routes",
+            "fuel-plan",
+            ""
+          ]
+        },
+        "description": "Returns route GeoJSON, vehicle assumptions, optimized fuel purchases, and total estimated fuel cost."
+      },
+      "response": []
+    },
+    {
+      "name": "Unknown start location",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test(\"Returns the validation error envelope\", function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.error.code).to.eql(\"validation_error\");",
+              "    pm.expect(body.error.message).to.be.a(\"string\");",
+              "    pm.expect(body.error.fields.start).to.be.a(\"string\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"start\": \"Not A City, NY\",\n  \"finish\": \"Mount Jackson, VA\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/routes/fuel-plan/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "routes",
+            "fuel-plan",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Method not allowed",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 405 and Allow header\", function () {",
+              "    pm.response.to.have.status(405);",
+              "    pm.expect(pm.response.headers.get(\"Allow\")).to.eql(\"POST\");",
+              "});",
+              "",
+              "pm.test(\"Returns the method error envelope\", function () {",
+              "    pm.expect(pm.response.json().error.code).to.eql(\"method_not_allowed\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/v1/routes/fuel-plan/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "routes",
+            "fuel-plan",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Unsupported content type",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Returns HTTP 415\", function () {",
+              "    pm.response.to.have.status(415);",
+              "});",
+              "",
+              "pm.test(\"Returns the media-type error envelope\", function () {",
+              "    pm.expect(pm.response.json().error.code).to.eql(\"unsupported_media_type\");",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "text/plain",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "not json"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/routes/fuel-plan/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "routes",
+            "fuel-plan",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ]
+}
