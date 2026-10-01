@@ -23,6 +23,15 @@ class FuelPlanApiTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json()['error']['code'], 'validation_error')
 
+    def test_rejects_oversized_request(self):
+        response = self.client.post(
+            self.url,
+            data='{"start":"' + ('x' * 10_001) + '"}',
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 413)
+        self.assertEqual(response.json()['error']['code'], 'request_too_large')
+
     @patch('routing.views.build_fuel_route_plan')
     def test_returns_completed_plan(self, build_plan):
         build_plan.return_value = {'total_fuel_cost': 42.50, 'fuel_stops': []}

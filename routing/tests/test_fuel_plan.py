@@ -46,6 +46,20 @@ class FuelPlanTests(SimpleTestCase):
         ], 800)
         self.assertEqual(plan['purchases'][1].candidate.station.id, 2)
 
+    def test_buys_required_fuel_across_expensive_gap(self):
+        plan = optimize_fuel_plan([
+            candidate(1, 0, '2.000'),
+            candidate(2, 450, '5.000'),
+        ], 900)
+        self.assertEqual([item.gallons for item in plan['purchases']], [Decimal('50'), Decimal('40')])
+        self.assertEqual(plan['total_cost'], Decimal('300.00'))
+
+    def test_rounds_itemized_cost_to_cents(self):
+        plan = optimize_fuel_plan([candidate(1, 0, '3.333')], 123.45)
+        self.assertEqual(plan['total_gallons'], Decimal('12.345'))
+        self.assertEqual(plan['purchases'][0].cost, Decimal('41.15'))
+        self.assertEqual(plan['total_cost'], Decimal('41.15'))
+
     def test_greedy_cost_matches_discrete_dynamic_programming_oracle(self):
         randomizer = random.Random(20260930)
         for case_number in range(50):

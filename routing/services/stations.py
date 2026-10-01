@@ -1,5 +1,5 @@
 from dataclasses import dataclass, replace
-from math import asin, cos, radians, sin, sqrt
+from math import asin, cos, floor, radians, sin, sqrt
 
 from django.conf import settings
 
@@ -8,6 +8,7 @@ from routing.models import FuelStation
 
 
 EARTH_RADIUS_MILES = 3958.7613
+SEGMENT_GRID_DEGREES = 0.25
 
 
 @dataclass(frozen=True)
@@ -63,11 +64,49 @@ def _project_to_segment(point, start, end):
     return fraction, sqrt(delta_x * delta_x + delta_y * delta_y)
 
 
-def _station_projection(station, sampled, geometry_miles, provider_miles):
+def _grid_cell(longitude, latitude):
+    return (
+        floor(longitude / SEGMENT_GRID_DEGREES),
+        floor(latitude / SEGMENT_GRID_DEGREES),
+    )
+
+
+def _build_segment_grid(sampled, corridor_miles):
+    grid = {}
+    latitude_buffer = corridor_miles / 69.0
+    for index in range(1, len(sampled)):
+        start = sampled[index - 1][0]
+        end = sampled[index][0]
+        min_abs_cos = max(
+            0.15,
+            min(abs(cos(radians(start[1]))), abs(cos(radians(end[1])))),
+        )
+        longitude_buffer = corridor_miles / (69.172 * min_abs_cos)
+        min_lon_cell, min_lat_cell = _grid_cell(
+            min(start[0], end[0]) - longitude_buffer,
+            min(start[1], end[1]) - latitude_buffer,
+        )
+        max_lon_cell, max_lat_cell = _grid_cell(
+            max(start[0], end[0]) + longitude_buffer,
+            max(start[1], end[1]) + latitude_buffer,
+        )
+        for lon_cell in range(min_lon_cell, max_lon_cell + 1):
+            for lat_cell in range(min_lat_cell, max_lat_cell + 1):
+                grid.setdefault((lon_cell, lat_cell), []).append(index)
+    return grid
+
+
+def _station_projection(
+    station,
+    sampled,
+    segment_indices,
+    geometry_miles,
+    provider_miles,
+):
     point = (station.longitude, station.latitude)
     best_distance = float('inf')
     best_mile = 0.0
-    for index in range(1, len(sampled)):
+    for index in segment_indices:
         start, start_mile = sampled[index - 1]
         end, end_mile = sampled[index]
         fraction, distance = _project_to_segment(point, start, end)
@@ -82,6 +121,7 @@ def find_station_candidates(route):
     coordinates = route['geometry']['coordinates']
     sampled, geometry_miles = _sample_route(coordinates)
     corridor = settings.ROUTE_CORRIDOR_MILES
+    segment_grid = _build_segment_grid(sampled, corridor)
 
     latitudes = [point[1] for point in coordinates]
     longitudes = [point[0] for point in coordinates]
@@ -103,9 +143,15 @@ def find_station_candidates(route):
 
     candidates = []
     for station in stations:
+        segment_indices = segment_grid.get(
+            _grid_cell(station.longitude, station.latitude)
+        )
+        if not segment_indices:
+            continue
         route_mile, detour_miles = _station_projection(
             station,
             sampled,
+            segment_indices,
             geometry_miles,
             route['distance_miles'],
         )

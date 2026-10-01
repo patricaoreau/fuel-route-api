@@ -122,6 +122,23 @@ Tests cover location resolution, imports and duplicate reconciliation, provider 
 
 `check --deploy` intentionally warns under local development defaults. Production must set a strong `DJANGO_SECRET_KEY`, `DJANGO_DEBUG=false`, the `DJANGO_SECURE_*` and secure-cookie settings after HTTPS is configured, explicit allowed hosts, and a shared production cache instead of the local-memory cache.
 
+## Performance
+
+Run the repeatable local benchmark after importing the supplied data and configuring the routing API key:
+
+```bash
+python manage.py benchmark_fuel_route --iterations 20
+```
+
+On October 1, 2026, the Windows development environment was measured with 6,841 imported stations and the Fort Smith, AR to Mount Jackson, VA route:
+
+| Operation | Median | p95 | Database queries | Target |
+| --- | ---: | ---: | ---: | --- |
+| Station selection | 26.80 ms | 32.79 ms | 1 | p95 under 250 ms |
+| Complete cached API view | 42.09 ms | 55.38 ms | 3 | p95 under 200 ms |
+
+Both latency targets passed. Query counts stayed constant across all 20 iterations, so no N+1 query behavior was detected. The separate route warm-up, which included the external provider request, took 4,298.86 ms and was intentionally excluded from cached-request timing.
+
 ## Design
 
 - `routing/clients/openrouteservice.py`: isolated one-call routing-provider adapter.

@@ -43,3 +43,36 @@ class StationCandidateTests(TestCase):
         station(1, -79, 40, '3.000')
         with self.assertRaises(DataCoverageError):
             find_station_candidates(self.route())
+
+    def test_projects_station_on_north_south_route(self):
+        origin = station(1, -80, 35.01, '3.000')
+        middle = station(2, -79.99, 36, '3.100')
+        route = {
+            'distance_miles': 138,
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': [[-80, 35], [-80, 37]],
+            },
+        }
+        candidates = find_station_candidates(route)
+        self.assertEqual(candidates[0].station.id, origin.id)
+        middle_candidate = next(item for item in candidates if item.station.id == middle.id)
+        self.assertAlmostEqual(middle_candidate.route_mile, 69, delta=2)
+
+    def test_handles_route_bend_and_repeated_coordinates(self):
+        origin = station(1, -80, 40, '3.000')
+        elbow = station(2, -79, 40.02, '3.100')
+        route = {
+            'distance_miles': 122,
+            'geometry': {
+                'type': 'LineString',
+                'coordinates': [
+                    [-80, 40], [-80, 40], [-79, 40], [-79, 41],
+                ],
+            },
+        }
+        candidates = find_station_candidates(route)
+        self.assertEqual(candidates[0].station.id, origin.id)
+        elbow_candidate = next(item for item in candidates if item.station.id == elbow.id)
+        self.assertGreater(elbow_candidate.route_mile, 45)
+        self.assertLess(elbow_candidate.route_mile, 75)

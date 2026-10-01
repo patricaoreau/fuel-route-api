@@ -52,6 +52,26 @@ class ProviderClientTests(SimpleTestCase):
         with self.assertRaises(ProviderUnavailableError):
             client.directions([0, 0], [1, 1])
 
+    def test_translates_authentication_failures(self):
+        for status_code in (401, 403):
+            with self.subTest(status_code=status_code):
+                transport = httpx.MockTransport(
+                    lambda request, status=status_code: httpx.Response(status)
+                )
+                client = OpenRouteServiceClient(api_key='key', transport=transport)
+                with self.assertRaises(ProviderUnavailableError):
+                    client.directions([0, 0], [1, 1])
+
+    def test_translates_provider_timeout(self):
+        def handler(request):
+            raise httpx.ReadTimeout('timed out', request=request)
+
+        client = OpenRouteServiceClient(
+            api_key='key', transport=httpx.MockTransport(handler)
+        )
+        with self.assertRaises(ProviderUnavailableError):
+            client.directions([0, 0], [1, 1])
+
 
 @override_settings(ROUTE_CACHE_SECONDS=60)
 class RouteCacheTests(SimpleTestCase):
